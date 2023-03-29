@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import typing as t
-from datetime import datetime
+from datetime import datetime, timedelta
+from time import sleep
 from pathlib import Path
 
 import selenium.webdriver.support.expected_conditions as EC
@@ -67,21 +68,38 @@ def get_credentials() -> t.Tuple[str, str]:
     return username, password
 
 
+def sleep_until(target_time: datetime) -> None:
+    if datetime.now() <= target_time:
+        sleep((target_time - datetime.now()).total_seconds())
+
+
 def main() -> None:
+    # User input
     year = "2023"
     month = "04"
-    day = "05"
-    time = "07:45 AM"
+    day = "06"
 
-    now = datetime.now()
-
+    # Set variables
+    start_tee_time = "07:00 AM"  # Set the search to show times beginning at 7:00 AM
     username, password = get_credentials()
-
     month_str = month_mapping[month]
-
     tee_times_page = "https://web1.myvscloud.com/wbwsc/sccharlestonwt.wsc/search.html?module=GR&search=no"
 
+    # Calculate date
+    now = datetime.now()
+    tee_date = datetime(int(year), int(month), int(day), 7)
+    delta = tee_date - now
+    if delta.days >= 7:
+        search_time = tee_date - timedelta(days=7)
+        login_time = search_time - timedelta(minutes=2)
+    else:
+        search_time = datetime.now()
+        login_time = datetime.now()
+
     with WebCrawler() as webcrawler:
+        # Wait until it's time to log in
+        sleep_until(login_time)
+
         # Go to tee times page
         webcrawler.go_to_page(tee_times_page)
 
@@ -141,21 +159,30 @@ def main() -> None:
         for option in webcrawler.driver.find_elements(
             By.CLASS_NAME, "picker__list-item"
         ):
-            if option.text == time:
+            if option.text == start_tee_time:
                 option.click()
                 break
 
         # Search
         webcrawler.ensure_clickable(By.ID, "grwebsearch_buttonsearch").click()
 
-        # Get first available tee time
+        # Wait until times go live at 7:00 AM
+        sleep_until(search_time)
+        webcrawler.driver.refresh()
+
+        # Get available tee time
+        tee_time_selection = 2  # 0 means first
         webcrawler.ensure_clickable(By.CLASS_NAME, "button-cell--cart")
-        webcrawler.driver.find_elements(By.CLASS_NAME, "button-cell--cart")[0].click()
+        webcrawler.driver.find_elements(By.CLASS_NAME, "button-cell--cart")[
+            tee_time_selection
+        ].click()
 
         # Click to book
-        # webcrawler.ensure_clickable(By.ID, "golfmemberselection_buttononeclicktofinish").click()
+        webcrawler.ensure_clickable(
+            By.ID, "golfmemberselection_buttononeclicktofinish"
+        ).click()
 
-    print("done!")
+        print("done!")
 
 
 if __name__ == "__main__":
