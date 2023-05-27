@@ -77,7 +77,7 @@ def main() -> None:
     # User input
     year = "2023"
     month = "04"
-    day = "06"
+    day = "19"
 
     # Set variables
     start_tee_time = "07:00 AM"  # Set the search to show times beginning at 7:00 AM
@@ -96,10 +96,10 @@ def main() -> None:
         search_time = datetime.now()
         login_time = datetime.now()
 
-    with WebCrawler() as webcrawler:
-        # Wait until it's time to log in
-        sleep_until(login_time)
+    # Wait until it's time to log in
+    sleep_until(login_time)
 
+    with WebCrawler() as webcrawler:
         # Go to tee times page
         webcrawler.go_to_page(tee_times_page)
 
@@ -168,6 +168,7 @@ def main() -> None:
 
         # Wait until times go live at 7:00 AM
         sleep_until(search_time)
+        sleep(0.5)
         webcrawler.driver.refresh()
 
         # Get available tee time
